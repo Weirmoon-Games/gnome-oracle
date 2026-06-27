@@ -92,6 +92,8 @@ export default function OracleCanvas({
       ctx!.save();
       ctx!.translate(cx, 150 + bob);
 
+      if (ap.accessory === "cape") drawCape(ctx!, ap);
+
       // ---- Staff (wizard/gnome only) ----
       if (hasStaff) {
         ctx!.save();
@@ -186,6 +188,9 @@ export default function OracleCanvas({
       // ---- Hat (varies by persona) ----
       drawHat(ctx!, ap, t);
 
+      // ---- Costume accessory ----
+      drawAccessory(ctx!, ap, t);
+
       ctx!.restore();
 
       // ---- Sparkle particles (drawn in body space) ----
@@ -215,6 +220,293 @@ export default function OracleCanvas({
   }, []);
 
   return <canvas ref={canvasRef} className="oracle" aria-hidden="true" />;
+}
+
+function drawCape(ctx: CanvasRenderingContext2D, ap: Appearance) {
+  ctx.fillStyle = shade(ap.robeColor, -0.22);
+  ctx.beginPath();
+  ctx.moveTo(-30, -8);
+  ctx.quadraticCurveTo(-62, 45, -48, 108);
+  ctx.quadraticCurveTo(0, 126, 48, 108);
+  ctx.quadraticCurveTo(62, 45, 30, -8);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = ap.accent;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-24, -6);
+  ctx.quadraticCurveTo(0, 12, 24, -6);
+  ctx.stroke();
+}
+
+function drawAccessory(ctx: CanvasRenderingContext2D, ap: Appearance, t: number) {
+  switch (ap.accessory) {
+    case "glasses":
+    case "lab-goggles":
+      drawGlasses(ctx, ap.accessory === "lab-goggles" ? ap.accent : "#2a1a4a");
+      break;
+    case "pirate-sash":
+      drawSash(ctx, "#b8192d");
+      break;
+    case "sword":
+      drawSword(ctx, ap.accent);
+      break;
+    case "portal-gadget":
+      drawPortalGadget(ctx, ap.accent, t);
+      break;
+    case "martial-belt":
+      drawBelt(ctx, "#1b1b1b", ap.accent);
+      break;
+    case "spatula":
+      drawSpatula(ctx);
+      break;
+    case "telescope":
+      drawTelescope(ctx, ap.accent);
+      break;
+    case "fossil-badge":
+      drawBadge(ctx, "#d9b56d", "fossil");
+      break;
+    case "mask":
+      drawMask(ctx);
+      break;
+    case "microphone":
+      drawMicrophone(ctx, ap.accent);
+      break;
+    case "book":
+      drawBook(ctx, ap.accent);
+      break;
+    case "plant":
+      drawPlant(ctx, ap.accent);
+      break;
+    case "wrench":
+      drawWrench(ctx);
+      break;
+    case "star-map":
+      drawBadge(ctx, ap.accent, "star");
+      break;
+    case "cape":
+    case "none":
+    default:
+      break;
+  }
+}
+
+function drawGlasses(ctx: CanvasRenderingContext2D, color: string) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.roundRect(-20, -38, 15, 11, 4);
+  ctx.roundRect(5, -38, 15, 11, 4);
+  ctx.moveTo(-5, -33);
+  ctx.lineTo(5, -33);
+  ctx.stroke();
+}
+
+function drawSash(ctx: CanvasRenderingContext2D, color: string) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 10;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(-30, 0);
+  ctx.lineTo(34, 78);
+  ctx.stroke();
+  ctx.fillStyle = "#ffd66b";
+  ctx.beginPath();
+  ctx.arc(28, 70, 5, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawSword(ctx: CanvasRenderingContext2D, accent: string) {
+  ctx.save();
+  ctx.translate(40, 36);
+  ctx.rotate(-0.35);
+  ctx.strokeStyle = "#dfe6ee";
+  ctx.lineWidth = 5;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(0, 42);
+  ctx.lineTo(0, -38);
+  ctx.stroke();
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 9;
+  ctx.beginPath();
+  ctx.moveTo(-13, 21);
+  ctx.lineTo(13, 21);
+  ctx.stroke();
+  ctx.fillStyle = "#6b4a2b";
+  ctx.fillRect(-4, 22, 8, 24);
+  ctx.restore();
+}
+
+function drawPortalGadget(ctx: CanvasRenderingContext2D, accent: string, t: number) {
+  ctx.save();
+  ctx.translate(-42, 24);
+  ctx.rotate(0.18);
+  ctx.fillStyle = "#dce7ef";
+  ctx.fillRect(-6, -8, 18, 30);
+  ctx.fillStyle = accent;
+  ctx.beginPath();
+  ctx.arc(3, -2, 5 + Math.sin(t * 8) * 1.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(5, -8);
+  ctx.lineTo(19, -22);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawBelt(ctx: CanvasRenderingContext2D, color: string, accent: string) {
+  ctx.fillStyle = color;
+  ctx.fillRect(-32, 50, 64, 9);
+  ctx.fillStyle = accent;
+  ctx.fillRect(-7, 48, 14, 13);
+}
+
+function drawSpatula(ctx: CanvasRenderingContext2D) {
+  ctx.save();
+  ctx.translate(41, 26);
+  ctx.rotate(0.35);
+  ctx.strokeStyle = "#6b4a2b";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(0, 42);
+  ctx.lineTo(0, -8);
+  ctx.stroke();
+  ctx.fillStyle = "#cfd6e6";
+  ctx.fillRect(-9, -24, 18, 16);
+  ctx.restore();
+}
+
+function drawTelescope(ctx: CanvasRenderingContext2D, accent: string) {
+  ctx.save();
+  ctx.translate(37, 4);
+  ctx.rotate(-0.38);
+  ctx.fillStyle = "#30445c";
+  ctx.fillRect(-28, -7, 44, 14);
+  ctx.fillStyle = accent;
+  ctx.fillRect(14, -9, 12, 18);
+  ctx.strokeStyle = "#6b4a2b";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(-6, 7);
+  ctx.lineTo(-18, 38);
+  ctx.moveTo(0, 7);
+  ctx.lineTo(18, 38);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawBadge(ctx: CanvasRenderingContext2D, color: string, kind: "fossil" | "star") {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(24, 18, 11, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#2a1a4a";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  if (kind === "star") {
+    for (let i = 0; i < 5; i++) {
+      ctx.lineTo(24 + Math.cos((i * Math.PI * 2) / 5 - Math.PI / 2) * 7, 18 + Math.sin((i * Math.PI * 2) / 5 - Math.PI / 2) * 7);
+    }
+    ctx.closePath();
+  } else {
+    ctx.moveTo(18, 19);
+    ctx.quadraticCurveTo(24, 10, 30, 19);
+    ctx.moveTo(20, 22);
+    ctx.lineTo(28, 22);
+  }
+  ctx.stroke();
+}
+
+function drawMask(ctx: CanvasRenderingContext2D) {
+  ctx.fillStyle = "#1f1f25";
+  ctx.beginPath();
+  ctx.ellipse(-10, -31, 10, 8, -0.15, 0, Math.PI * 2);
+  ctx.ellipse(10, -31, 10, 8, 0.15, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.ellipse(-9, -32, 4, 2, 0, 0, Math.PI * 2);
+  ctx.ellipse(9, -32, 4, 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawMicrophone(ctx: CanvasRenderingContext2D, accent: string) {
+  ctx.save();
+  ctx.translate(39, 8);
+  ctx.rotate(-0.25);
+  ctx.fillStyle = "#20242c";
+  ctx.beginPath();
+  ctx.ellipse(0, -14, 8, 12, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-6, -14);
+  ctx.lineTo(6, -14);
+  ctx.stroke();
+  ctx.strokeStyle = "#6b4a2b";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.moveTo(0, -2);
+  ctx.lineTo(0, 34);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawBook(ctx: CanvasRenderingContext2D, accent: string) {
+  ctx.fillStyle = shade(accent, -0.25);
+  ctx.beginPath();
+  ctx.moveTo(-34, 22);
+  ctx.lineTo(-4, 14);
+  ctx.lineTo(-4, 50);
+  ctx.lineTo(-34, 58);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = shade(accent, 0.18);
+  ctx.beginPath();
+  ctx.moveTo(-4, 14);
+  ctx.lineTo(26, 22);
+  ctx.lineTo(26, 58);
+  ctx.lineTo(-4, 50);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "#fffdf5";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-4, 14);
+  ctx.lineTo(-4, 50);
+  ctx.stroke();
+}
+
+function drawPlant(ctx: CanvasRenderingContext2D, accent: string) {
+  ctx.fillStyle = "#8a5a2b";
+  ctx.fillRect(-42, 42, 18, 16);
+  ctx.fillStyle = accent;
+  ctx.beginPath();
+  ctx.ellipse(-37, 36, 8, 4, -0.7, 0, Math.PI * 2);
+  ctx.ellipse(-28, 34, 8, 4, 0.7, 0, Math.PI * 2);
+  ctx.ellipse(-33, 28, 5, 10, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawWrench(ctx: CanvasRenderingContext2D) {
+  ctx.save();
+  ctx.translate(40, 30);
+  ctx.rotate(0.45);
+  ctx.strokeStyle = "#c7d0db";
+  ctx.lineWidth = 6;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(0, 36);
+  ctx.lineTo(0, -22);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, -28, 10, 0.3 * Math.PI, 1.7 * Math.PI);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawHat(ctx: CanvasRenderingContext2D, ap: Appearance, t: number) {

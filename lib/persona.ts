@@ -4,6 +4,45 @@
 export type HatStyle = "wizard" | "gnome" | "fedora" | "cork" | "cowboy" | "none";
 export const HAT_STYLES: HatStyle[] = ["wizard", "gnome", "fedora", "cork", "cowboy", "none"];
 
+export type CostumeAccessory =
+  | "none"
+  | "glasses"
+  | "pirate-sash"
+  | "sword"
+  | "portal-gadget"
+  | "martial-belt"
+  | "spatula"
+  | "lab-goggles"
+  | "telescope"
+  | "fossil-badge"
+  | "mask"
+  | "cape"
+  | "microphone"
+  | "book"
+  | "plant"
+  | "wrench"
+  | "star-map";
+
+export const COSTUME_ACCESSORIES: CostumeAccessory[] = [
+  "none",
+  "glasses",
+  "pirate-sash",
+  "sword",
+  "portal-gadget",
+  "martial-belt",
+  "spatula",
+  "lab-goggles",
+  "telescope",
+  "fossil-badge",
+  "mask",
+  "cape",
+  "microphone",
+  "book",
+  "plant",
+  "wrench",
+  "star-map",
+];
+
 // Sound-effect "flavor" per persona — drives the waveform/notes of the chime,
 // typing blip, etc. (mapped to actual synth params in lib/sound.ts).
 export type SfxTheme = "magic" | "corporate" | "nature" | "robot" | "whimsy";
@@ -16,6 +55,7 @@ export interface Appearance {
   beardColor: string;
   skin: string;
   accent: string;
+  accessory?: CostumeAccessory;
 }
 
 export interface Voice {
@@ -25,8 +65,10 @@ export interface Voice {
 
 export interface PersonaMeta {
   appearance: Appearance;
+  appearanceVariants: Appearance[];
   voice: Voice;
   sfx: SfxTheme;
+  moods: string[];
 }
 
 // A handful of cohesive palettes; the slug hash picks one so every persona is
@@ -71,8 +113,10 @@ export function deriveMeta(slug: string, temperature = 0.9): PersonaMeta {
   const sfx = SFX_THEMES[(h >> 6) % SFX_THEMES.length];
   return {
     appearance: { hat, ...palette },
+    appearanceVariants: makeDefaultVariants({ hat, ...palette }),
     voice: { rate: round2(rate), pitch: round2(pitch) },
     sfx,
+    moods: ["default", "excited", "grumpy", "wise"],
   };
 }
 
@@ -107,19 +151,101 @@ export function normalizeMeta(
     ? (o.sfx as SfxTheme)
     : fallback.sfx;
 
+  const accessory = COSTUME_ACCESSORIES.includes(a.accessory as CostumeAccessory)
+    ? (a.accessory as CostumeAccessory)
+    : fallback.appearance.accessory;
+
+  const appearance = {
+    hat,
+    hatColor: color(a.hatColor, fallback.appearance.hatColor),
+    robeColor: color(a.robeColor, fallback.appearance.robeColor),
+    beardColor: color(a.beardColor, fallback.appearance.beardColor),
+    skin: color(a.skin, fallback.appearance.skin),
+    accent: color(a.accent, fallback.appearance.accent),
+    accessory,
+  };
+
+  const rawVariants = Array.isArray(o.appearanceVariants) ? o.appearanceVariants : [];
+  const appearanceVariants = normalizeVariants(rawVariants, appearance, fallback.appearanceVariants);
+
+  const moods = Array.isArray(o.moods)
+    ? o.moods
+        .map((m) => (typeof m === "string" ? m.trim().toLowerCase() : ""))
+        .filter(Boolean)
+        .slice(0, 8)
+    : fallback.moods;
+
   return {
-    appearance: {
-      hat,
-      hatColor: color(a.hatColor, fallback.appearance.hatColor),
-      robeColor: color(a.robeColor, fallback.appearance.robeColor),
-      beardColor: color(a.beardColor, fallback.appearance.beardColor),
-      skin: color(a.skin, fallback.appearance.skin),
-      accent: color(a.accent, fallback.appearance.accent),
-    },
+    appearance,
+    appearanceVariants,
     voice: {
       rate: num(v.rate, fallback.voice.rate, 0.5, 1.6),
       pitch: num(v.pitch, fallback.voice.pitch, 0, 2),
     },
     sfx,
+    moods: moods.length ? Array.from(new Set(["default", ...moods])) : fallback.moods,
   };
+}
+
+function normalizeVariants(rawVariants: unknown[], first: Appearance, fallback: Appearance[]): Appearance[] {
+  const variants: Appearance[] = [];
+  for (const raw of rawVariants.slice(0, 4)) {
+    if (!raw || typeof raw !== "object") continue;
+    const o = raw as Record<string, unknown>;
+    const base = variants.length < fallback.length ? fallback[variants.length] : first;
+    const hat = HAT_STYLES.includes(o.hat as HatStyle) ? (o.hat as HatStyle) : base.hat;
+    const accessory = COSTUME_ACCESSORIES.includes(o.accessory as CostumeAccessory)
+      ? (o.accessory as CostumeAccessory)
+      : base.accessory;
+    const color = (val: unknown, def: string) =>
+      typeof val === "string" && /^#[0-9a-fA-F]{3,8}$/.test(val) ? val : def;
+    variants.push({
+      hat,
+      hatColor: color(o.hatColor, base.hatColor),
+      robeColor: color(o.robeColor, base.robeColor),
+      beardColor: color(o.beardColor, base.beardColor),
+      skin: color(o.skin, base.skin),
+      accent: color(o.accent, base.accent),
+      accessory,
+    });
+  }
+  if (variants.length) variants[0] = first;
+  else variants.push(first);
+  const defaults = makeDefaultVariants(first);
+  while (variants.length < 4) variants.push(defaults[variants.length]);
+  return variants.slice(0, 4);
+}
+
+function makeDefaultVariants(base: Appearance): Appearance[] {
+  const accessories: CostumeAccessory[] = [
+    base.accessory ?? "none",
+    "glasses",
+    "cape",
+    "book",
+  ];
+  const hats: HatStyle[] = [base.hat, base.hat === "none" ? "gnome" : base.hat, "wizard", "cowboy"];
+  return accessories.map((accessory, i) => ({
+    ...base,
+    hat: hats[i],
+    accessory,
+    hatColor: i === 0 ? base.hatColor : shadeHex(base.hatColor, i % 2 === 0 ? 0.12 : -0.12),
+    robeColor: i === 0 ? base.robeColor : shadeHex(base.robeColor, i % 2 === 0 ? -0.1 : 0.1),
+  }));
+}
+
+function shadeHex(hex: string, frac: number): string {
+  const m = hex.replace("#", "");
+  const full =
+    m.length === 3
+      ? m
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : m.padEnd(6, "0").slice(0, 6);
+  const adjust = (value: number) =>
+    Math.max(0, Math.min(255, Math.round(value + 255 * frac)));
+  const r = adjust(parseInt(full.slice(0, 2), 16));
+  const g = adjust(parseInt(full.slice(2, 4), 16));
+  const b = adjust(parseInt(full.slice(4, 6), 16));
+  return `#${[r, g, b].map((n) => n.toString(16).padStart(2, "0")).join("")}`;
 }

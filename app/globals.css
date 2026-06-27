@@ -127,6 +127,26 @@ canvas.oracle {
   margin-top: 18px;
 }
 
+.controlgrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.selectrow {
+  display: flex;
+  gap: 8px;
+}
+
+.selectrow select {
+  flex: 1;
+  min-width: 0;
+}
+
+.selectrow .iconbtn {
+  flex: 0 0 auto;
+}
+
 label.field {
   display: flex;
   flex-direction: column;
@@ -351,4 +371,14 @@ button.danger {
 .section-title {
   margin: 26px 0 10px;
   color: var(--accent);
+}
+
+@media (max-width: 720px) {
+  .controlgrid {
+    grid-template-columns: 1fr;
+  }
+
+  .row {
+    flex-direction: column;
+  }
 }

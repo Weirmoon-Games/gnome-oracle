@@ -15,6 +15,8 @@ interface Character {
   meta: PersonaMeta;
 }
 
+type ResponseStyle = "funny-useful" | "mostly-comedy" | "oracle-chaos";
+
 interface Volumes {
   voice: number;
   music: number;
@@ -23,6 +25,12 @@ interface Volumes {
 }
 
 const DEFAULT_VOLUMES: Volumes = { voice: 1, music: 0.5, sfx: 0.6, typing: 0.4 };
+
+const RESPONSE_STYLES: { value: ResponseStyle; label: string }[] = [
+  { value: "funny-useful", label: "Funny but useful" },
+  { value: "mostly-comedy", label: "Mostly comedy" },
+  { value: "oracle-chaos", label: "Oracle chaos" },
+];
 
 function readNum(key: string, def: number): number {
   if (typeof localStorage === "undefined") return def;
@@ -44,10 +52,20 @@ export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
   const [historyId, setHistoryId] = useState<number | null>(null);
   const [favorited, setFavorited] = useState(false);
+  const [outfitIndex, setOutfitIndex] = useState(0);
+  const [responseStyle, setResponseStyle] = useState<ResponseStyle>("funny-useful");
+  const [mood, setMood] = useState("default");
   const abortRef = useRef<AbortController | null>(null);
 
   const selected = characters.find((c) => c.id === selectedId);
   const speaking = streaming || ttsSpeaking;
+  const outfits = selected?.meta.appearanceVariants?.length
+    ? selected.meta.appearanceVariants
+    : selected
+      ? [selected.meta.appearance]
+      : [];
+  const selectedAppearance = outfits[outfitIndex] ?? selected?.meta.appearance;
+  const moods = selected?.meta.moods?.length ? selected.meta.moods : ["default"];
 
   // Load personas, music playlist, and persisted prefs; subscribe to TTS state.
   useEffect(() => {
@@ -66,6 +84,9 @@ export default function Home() {
 
     const voice = localStorage.getItem("gnome.voiceOn");
     const music = localStorage.getItem("gnome.musicOn");
+    const storedStyle = localStorage.getItem("gnome.responseStyle");
+    const storedMood = localStorage.getItem("gnome.mood");
+    const storedOutfit = Number(localStorage.getItem("gnome.outfitIndex"));
     const voiceOnPref = voice === null ? true : voice === "1";
     const musicOnPref = music === null ? true : music === "1";
     const vols: Volumes = {
@@ -78,6 +99,9 @@ export default function Home() {
     setVoiceOn(voiceOnPref);
     setMusicOn(musicOnPref);
     setVolumes(vols);
+    if (isResponseStyle(storedStyle)) setResponseStyle(storedStyle);
+    if (storedMood) setMood(storedMood);
+    if (Number.isFinite(storedOutfit)) setOutfitIndex(Math.max(0, Math.min(3, storedOutfit)));
 
     tts.setMuted(!voiceOnPref);
     tts.setVolume(vols.voice);
@@ -100,6 +124,8 @@ export default function Home() {
     if (selected) {
       tts.setVoice(selected.meta.voice);
       sound.setTheme(selected.meta.sfx);
+      setOutfitIndex((i) => Math.min(i, (selected.meta.appearanceVariants?.length ?? 1) - 1));
+      setMood((current) => (selected.meta.moods.includes(current) ? current : "default"));
     }
   }, [selected]);
 
@@ -109,6 +135,33 @@ export default function Home() {
     const next = characters.find((c) => c.id === id);
     if (next) sound.setTheme(next.meta.sfx);
     sound.switchBell();
+  }
+
+  function changeOutfit(index: number) {
+    setOutfitIndex(index);
+    localStorage.setItem("gnome.outfitIndex", String(index));
+    setBurst((b) => b + 1);
+    sound.switchBell();
+  }
+
+  function shuffleOutfit() {
+    if (!outfits.length) return;
+    const next =
+      outfits.length === 1
+        ? 0
+        : (outfitIndex + 1 + Math.floor(Math.random() * (outfits.length - 1))) %
+          outfits.length;
+    changeOutfit(next);
+  }
+
+  function changeResponseStyle(value: ResponseStyle) {
+    setResponseStyle(value);
+    localStorage.setItem("gnome.responseStyle", value);
+  }
+
+  function changeMood(value: string) {
+    setMood(value);
+    localStorage.setItem("gnome.mood", value);
   }
 
   function toggleVoice() {
@@ -154,7 +207,7 @@ export default function Home() {
       const res = await fetch("/api/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question, characterId: selectedId }),
+        body: JSON.stringify({ question, characterId: selectedId, responseStyle, mood }),
         signal: ac.signal,
       });
       const hid = res.headers.get("X-History-Id");
@@ -186,7 +239,7 @@ export default function Home() {
     } finally {
       setStreaming(false);
     }
-  }, [question, selectedId, streaming]);
+  }, [question, selectedId, streaming, responseStyle, mood]);
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") ask();
@@ -288,7 +341,7 @@ export default function Home() {
       </p>
 
       <div className="panel stage">
-        <OracleCanvas speaking={speaking} appearance={selected?.meta.appearance} burst={burst} />
+        <OracleCanvas speaking={speaking} appearance={selectedAppearance} burst={burst} />
         <div className={`bubble ${answer ? "" : "placeholder"}`}>
           {answer ||
             (speaking ? "The oracle stirs…" : "Pick a persona and ask me something silly.")}
@@ -323,6 +376,52 @@ export default function Home() {
         </label>
         {selected?.description && <p className="persona-desc">{selected.description}</p>}
 
+        <div className="controlgrid">
+          <label className="field">
+            Outfit
+            <div className="selectrow">
+              <select
+                value={outfitIndex}
+                onChange={(e) => changeOutfit(Number(e.target.value))}
+              >
+                {outfits.map((_, i) => (
+                  <option key={i} value={i}>
+                    Outfit {i + 1}
+                  </option>
+                ))}
+              </select>
+              <button type="button" className="iconbtn" onClick={shuffleOutfit} title="Shuffle outfit">
+                🎲
+              </button>
+            </div>
+          </label>
+
+          <label className="field">
+            Response style
+            <select
+              value={responseStyle}
+              onChange={(e) => changeResponseStyle(e.target.value as ResponseStyle)}
+            >
+              {RESPONSE_STYLES.map((style) => (
+                <option key={style.value} value={style.value}>
+                  {style.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="field">
+            Mood
+            <select value={mood} onChange={(e) => changeMood(e.target.value)}>
+              {moods.map((m) => (
+                <option key={m} value={m}>
+                  {labelize(m)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
         <div className="row">
           <input
             type="text"
@@ -338,4 +437,16 @@ export default function Home() {
       </div>
     </main>
   );
+}
+
+function isResponseStyle(value: string | null): value is ResponseStyle {
+  return value === "funny-useful" || value === "mostly-comedy" || value === "oracle-chaos";
+}
+
+function labelize(value: string): string {
+  return value
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }

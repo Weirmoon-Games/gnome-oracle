@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createCharacter } from "@/lib/db";
 import { generateJSON } from "@/lib/ollama";
-import { normalizeMeta, HAT_STYLES, SFX_THEMES } from "@/lib/persona";
+import { normalizeMeta, HAT_STYLES, SFX_THEMES, COSTUME_ACCESSORIES } from "@/lib/persona";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,13 +23,17 @@ function buildPrompt(vibe: string): string {
     '  "appearance": { "hat": one of ' +
     JSON.stringify(HAT_STYLES) +
     ', "hatColor": hex color, "robeColor": hex color, "beardColor": hex color, ' +
-    '"skin": hex color, "accent": hex color (used for glow/sparkles) },\n' +
+    '"skin": hex color, "accent": hex color (used for glow/sparkles), "accessory": one of ' +
+    JSON.stringify(COSTUME_ACCESSORIES) +
+    " },\n" +
+    '  "appearanceVariants": array of 4 appearance objects using the same shape as "appearance",\n' +
     '  "voice": { "rate": number 0.7 to 1.4 (speech speed), "pitch": number 0.6 to 1.6 (speech pitch) },\n' +
     '  "sfx": one of ' +
     JSON.stringify(SFX_THEMES) +
-    " (the sound-effect flavor that best matches the vibe)\n" +
+    ' (the sound-effect flavor that best matches the vibe),\n' +
+    '  "moods": array of 3-5 short lowercase mood names\n' +
     "}\n" +
-    "Pick colors, a hat, and an sfx flavor that match the vibe. Do not include any text outside the JSON object."
+    "Pick colors, costumes, accessories, moods, and an sfx flavor that match the vibe. Do not include any text outside the JSON object."
   );
 }
 
@@ -92,9 +96,21 @@ export async function POST(req: NextRequest) {
 
   // Pull appearance/voice from the same object; normalizeMeta fills any gaps
   // with a deterministic fallback so a sparse/invalid model reply still works.
-  const rawMeta = raw as { appearance?: unknown; voice?: unknown; sfx?: unknown };
+  const rawMeta = raw as {
+    appearance?: unknown;
+    appearanceVariants?: unknown;
+    voice?: unknown;
+    sfx?: unknown;
+    moods?: unknown;
+  };
   const meta = normalizeMeta(
-    { appearance: rawMeta.appearance, voice: rawMeta.voice, sfx: rawMeta.sfx },
+    {
+      appearance: rawMeta.appearance,
+      appearanceVariants: rawMeta.appearanceVariants,
+      voice: rawMeta.voice,
+      sfx: rawMeta.sfx,
+      moods: rawMeta.moods,
+    },
     persona.name,
     persona.temperature
   );
