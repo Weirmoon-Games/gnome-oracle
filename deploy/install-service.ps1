@@ -16,6 +16,7 @@ param(
     [string]$InstallPath = "C:\Services\GnomeOracle",
     [int]$Port = 8080,
     [string]$OllamaModel = "gemma2:2b",
+    [int]$OllamaNumCtx = 8192,
     [string]$OllamaUrl = "http://127.0.0.1:11434",
     [string]$WinSWUrl = "https://github.com/winsw/winsw/releases/download/v2.12.0/WinSW-x64.exe",
     [switch]$SkipBuild
@@ -336,6 +337,7 @@ $configXml = @"
   <env name="HOSTNAME" value="0.0.0.0" />
   <env name="NODE_ENV" value="production" />
   <env name="OLLAMA_MODEL" value="$OllamaModel" />
+  <env name="OLLAMA_NUM_CTX" value="$OllamaNumCtx" />
   <env name="OLLAMA_URL" value="$OllamaUrl" />
   <onfailure action="restart" delay="10 sec" />
   <onfailure action="restart" delay="20 sec" />

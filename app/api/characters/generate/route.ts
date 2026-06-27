@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createCharacter } from "@/lib/db";
 import { generateJSON } from "@/lib/ollama";
-import { normalizeMeta, HAT_STYLES, SFX_THEMES, COSTUME_ACCESSORIES } from "@/lib/persona";
+import {
+  normalizeMeta,
+  HAT_STYLES,
+  SFX_THEMES,
+  COSTUME_ACCESSORIES,
+  HAIR_STYLES,
+  FACE_FEATURES,
+  TORSO_STYLES,
+  BACK_ITEMS,
+  HELD_ITEMS,
+  COSTUME_PATTERNS,
+} from "@/lib/persona";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,6 +36,18 @@ function buildPrompt(vibe: string): string {
     ', "hatColor": hex color, "robeColor": hex color, "beardColor": hex color, ' +
     '"skin": hex color, "accent": hex color (used for glow/sparkles), "accessory": one of ' +
     JSON.stringify(COSTUME_ACCESSORIES) +
+    ', "hair": one of ' +
+    JSON.stringify(HAIR_STYLES) +
+    ', "faceFeature": one of ' +
+    JSON.stringify(FACE_FEATURES) +
+    ', "torsoStyle": one of ' +
+    JSON.stringify(TORSO_STYLES) +
+    ', "backItem": one of ' +
+    JSON.stringify(BACK_ITEMS) +
+    ', "heldItem": one of ' +
+    JSON.stringify(HELD_ITEMS) +
+    ', "pattern": one of ' +
+    JSON.stringify(COSTUME_PATTERNS) +
     " },\n" +
     '  "appearanceVariants": array of 4 appearance objects using the same shape as "appearance",\n' +
     '  "voice": { "rate": number 0.7 to 1.4 (speech speed), "pitch": number 0.6 to 1.6 (speech pitch) },\n' +

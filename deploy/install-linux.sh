@@ -8,6 +8,7 @@ SERVICE_USER="${SERVICE_USER:-gnome-oracle}"
 PORT="${PORT:-8080}"
 SERVER_NAME="${SERVER_NAME:-$(hostname -f 2>/dev/null || hostname)}"
 OLLAMA_MODEL="${OLLAMA_MODEL:-gemma2:2b}"
+OLLAMA_NUM_CTX="${OLLAMA_NUM_CTX:-8192}"
 OLLAMA_URL="${OLLAMA_URL:-http://127.0.0.1:11434}"
 NODE_MAJOR_TARGET="${NODE_MAJOR_TARGET:-22}"
 SKIP_BUILD="${SKIP_BUILD:-0}"
@@ -178,6 +179,7 @@ Environment=PORT=${PORT}
 Environment=HOSTNAME=127.0.0.1
 Environment=NODE_ENV=production
 Environment=OLLAMA_MODEL=${OLLAMA_MODEL}
+Environment=OLLAMA_NUM_CTX=${OLLAMA_NUM_CTX}
 Environment=OLLAMA_URL=${OLLAMA_URL}
 ExecStart=${node_bin} server.js
 Restart=always

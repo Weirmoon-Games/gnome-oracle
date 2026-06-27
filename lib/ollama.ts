@@ -1,9 +1,10 @@
 // Thin client for the local Ollama server. No streaming "thinking" — we use a
-// small non-reasoning model (gemma2:2b by default) and cap output length so
-// replies come back fast on this GPU-less box.
+// small non-reasoning model (gemma2:2b by default) and keep the context/output
+// sizes modest so replies come back fast on this GPU-less box.
 
 export const OLLAMA_URL = process.env.OLLAMA_URL ?? "http://127.0.0.1:11434";
 export const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "gemma2:2b";
+export const OLLAMA_NUM_CTX = Number.parseInt(process.env.OLLAMA_NUM_CTX ?? "8192", 10);
 
 // Keep the model resident in RAM between requests so only the FIRST reply pays
 // the load cost; everything after is snappy.
@@ -36,7 +37,7 @@ export async function streamChat(opts: {
         temperature: opts.temperature ?? 0.9,
         num_predict: opts.numPredict ?? 200,
         top_p: 0.9,
-        num_ctx: 2048,
+        num_ctx: OLLAMA_NUM_CTX,
       },
     }),
   });
@@ -100,7 +101,7 @@ export async function generateJSON(prompt: string): Promise<unknown> {
       stream: false,
       format: "json",
       keep_alive: KEEP_ALIVE,
-      options: { temperature: 0.8, num_predict: 400, num_ctx: 2048 },
+      options: { temperature: 0.8, num_predict: 400, num_ctx: OLLAMA_NUM_CTX },
     }),
   });
   if (!res.ok) throw new Error(`Ollama responded ${res.status}`);

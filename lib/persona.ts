@@ -43,6 +43,144 @@ export const COSTUME_ACCESSORIES: CostumeAccessory[] = [
   "star-map",
 ];
 
+export type HairStyle =
+  | "none"
+  | "spiky-blue"
+  | "nervous-brown"
+  | "orange-ears"
+  | "bald"
+  | "square-porous"
+  | "pirate-dreads";
+export const HAIR_STYLES: HairStyle[] = [
+  "none",
+  "spiky-blue",
+  "nervous-brown",
+  "orange-ears",
+  "bald",
+  "square-porous",
+  "pirate-dreads",
+];
+
+export type FaceFeature =
+  | "none"
+  | "goggles"
+  | "sunglasses"
+  | "round-glasses"
+  | "mask"
+  | "beard-stache"
+  | "eye-patch";
+export const FACE_FEATURES: FaceFeature[] = [
+  "none",
+  "goggles",
+  "sunglasses",
+  "round-glasses",
+  "mask",
+  "beard-stache",
+  "eye-patch",
+];
+
+export type TorsoStyle =
+  | "robe"
+  | "lab-coat"
+  | "yellow-shirt"
+  | "martial-gi"
+  | "beach-shirt"
+  | "collared-shirt"
+  | "fry-cook"
+  | "pirate-coat"
+  | "tactical-suit"
+  | "detective-coat"
+  | "field-vest"
+  | "space-robe"
+  | "chef-coat"
+  | "mechanic-coveralls";
+export const TORSO_STYLES: TorsoStyle[] = [
+  "robe",
+  "lab-coat",
+  "yellow-shirt",
+  "martial-gi",
+  "beach-shirt",
+  "collared-shirt",
+  "fry-cook",
+  "pirate-coat",
+  "tactical-suit",
+  "detective-coat",
+  "field-vest",
+  "space-robe",
+  "chef-coat",
+  "mechanic-coveralls",
+];
+
+export type BackItem =
+  | "none"
+  | "turtle-shell"
+  | "twin-swords"
+  | "dino-tail"
+  | "star-cape"
+  | "weather-vane"
+  | "backpack";
+export const BACK_ITEMS: BackItem[] = [
+  "none",
+  "turtle-shell",
+  "twin-swords",
+  "dino-tail",
+  "star-cape",
+  "weather-vane",
+  "backpack",
+];
+
+export type HeldItem =
+  | "none"
+  | "portal-gun"
+  | "flask"
+  | "fossil-brush"
+  | "rock-hammer"
+  | "telescope"
+  | "red-flashlight"
+  | "spatula"
+  | "compass"
+  | "sword"
+  | "wrench"
+  | "book"
+  | "microphone"
+  | "plant-shears";
+export const HELD_ITEMS: HeldItem[] = [
+  "none",
+  "portal-gun",
+  "flask",
+  "fossil-brush",
+  "rock-hammer",
+  "telescope",
+  "red-flashlight",
+  "spatula",
+  "compass",
+  "sword",
+  "wrench",
+  "book",
+  "microphone",
+  "plant-shears",
+];
+
+export type CostumePattern =
+  | "none"
+  | "stars"
+  | "fossil-bones"
+  | "scales"
+  | "bubbles"
+  | "lightning"
+  | "circuit-lines"
+  | "leaf-veins";
+export const COSTUME_PATTERNS: CostumePattern[] = [
+  "none",
+  "stars",
+  "fossil-bones",
+  "scales",
+  "bubbles",
+  "lightning",
+  "circuit-lines",
+  "leaf-veins",
+];
+
 // Sound-effect "flavor" per persona — drives the waveform/notes of the chime,
 // typing blip, etc. (mapped to actual synth params in lib/sound.ts).
 export type SfxTheme = "magic" | "corporate" | "nature" | "robot" | "whimsy";
@@ -56,6 +194,12 @@ export interface Appearance {
   skin: string;
   accent: string;
   accessory?: CostumeAccessory;
+  hair?: HairStyle;
+  faceFeature?: FaceFeature;
+  torsoStyle?: TorsoStyle;
+  backItem?: BackItem;
+  heldItem?: HeldItem;
+  pattern?: CostumePattern;
 }
 
 export interface Voice {
@@ -154,6 +298,12 @@ export function normalizeMeta(
   const accessory = COSTUME_ACCESSORIES.includes(a.accessory as CostumeAccessory)
     ? (a.accessory as CostumeAccessory)
     : fallback.appearance.accessory;
+  const hair = enumValue(a.hair, HAIR_STYLES, fallback.appearance.hair);
+  const faceFeature = enumValue(a.faceFeature, FACE_FEATURES, fallback.appearance.faceFeature);
+  const torsoStyle = enumValue(a.torsoStyle, TORSO_STYLES, fallback.appearance.torsoStyle);
+  const backItem = enumValue(a.backItem, BACK_ITEMS, fallback.appearance.backItem);
+  const heldItem = enumValue(a.heldItem, HELD_ITEMS, fallback.appearance.heldItem);
+  const pattern = enumValue(a.pattern, COSTUME_PATTERNS, fallback.appearance.pattern);
 
   const appearance = {
     hat,
@@ -163,6 +313,12 @@ export function normalizeMeta(
     skin: color(a.skin, fallback.appearance.skin),
     accent: color(a.accent, fallback.appearance.accent),
     accessory,
+    hair,
+    faceFeature,
+    torsoStyle,
+    backItem,
+    heldItem,
+    pattern,
   };
 
   const rawVariants = Array.isArray(o.appearanceVariants) ? o.appearanceVariants : [];
@@ -197,6 +353,12 @@ function normalizeVariants(rawVariants: unknown[], first: Appearance, fallback: 
     const accessory = COSTUME_ACCESSORIES.includes(o.accessory as CostumeAccessory)
       ? (o.accessory as CostumeAccessory)
       : base.accessory;
+    const hair = enumValue(o.hair, HAIR_STYLES, base.hair);
+    const faceFeature = enumValue(o.faceFeature, FACE_FEATURES, base.faceFeature);
+    const torsoStyle = enumValue(o.torsoStyle, TORSO_STYLES, base.torsoStyle);
+    const backItem = enumValue(o.backItem, BACK_ITEMS, base.backItem);
+    const heldItem = enumValue(o.heldItem, HELD_ITEMS, base.heldItem);
+    const pattern = enumValue(o.pattern, COSTUME_PATTERNS, base.pattern);
     const color = (val: unknown, def: string) =>
       typeof val === "string" && /^#[0-9a-fA-F]{3,8}$/.test(val) ? val : def;
     variants.push({
@@ -207,6 +369,12 @@ function normalizeVariants(rawVariants: unknown[], first: Appearance, fallback: 
       skin: color(o.skin, base.skin),
       accent: color(o.accent, base.accent),
       accessory,
+      hair,
+      faceFeature,
+      torsoStyle,
+      backItem,
+      heldItem,
+      pattern,
     });
   }
   if (variants.length) variants[0] = first;
@@ -214,6 +382,10 @@ function normalizeVariants(rawVariants: unknown[], first: Appearance, fallback: 
   const defaults = makeDefaultVariants(first);
   while (variants.length < 4) variants.push(defaults[variants.length]);
   return variants.slice(0, 4);
+}
+
+function enumValue<T extends string>(val: unknown, allowed: readonly T[], def: T | undefined): T | undefined {
+  return allowed.includes(val as T) ? (val as T) : def;
 }
 
 function makeDefaultVariants(base: Appearance): Appearance[] {

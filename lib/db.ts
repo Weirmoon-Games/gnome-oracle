@@ -61,6 +61,7 @@ function slugify(name: string): string {
 
 type SeedOptions = Pick<PersonaMeta, "voice" | "sfx" | "moods"> & {
   accessories: NonNullable<PersonaMeta["appearance"]["accessory"]>[];
+  appearanceVariants?: PersonaMeta["appearanceVariants"];
 };
 
 function wardrobe(
@@ -78,7 +79,9 @@ function wardrobe(
 }
 
 function seedMeta(base: PersonaMeta["appearance"], opts: SeedOptions): PersonaMeta {
-  const appearanceVariants = wardrobe(base, opts.accessories);
+  const appearanceVariants = opts.appearanceVariants?.length
+    ? opts.appearanceVariants.slice(0, 4)
+    : wardrobe(base, opts.accessories);
   return {
     appearance: appearanceVariants[0],
     appearanceVariants,
@@ -86,6 +89,146 @@ function seedMeta(base: PersonaMeta["appearance"], opts: SeedOptions): PersonaMe
     sfx: opts.sfx,
     moods: Array.from(new Set(["default", ...opts.moods])),
   };
+}
+
+function outfit(
+  base: PersonaMeta["appearance"],
+  changes: Partial<PersonaMeta["appearance"]>
+): PersonaMeta["appearance"] {
+  return { ...base, ...changes };
+}
+
+function uniqueWardrobe(name: string, base: PersonaMeta["appearance"]): PersonaMeta["appearanceVariants"] | undefined {
+  switch (name) {
+    case "Portal Grandpa":
+      return [
+        outfit(base, { hat: "none", hair: "spiky-blue", faceFeature: "none", torsoStyle: "lab-coat", backItem: "none", heldItem: "portal-gun", pattern: "circuit-lines", robeColor: "#65c7cb", accent: "#66ff55" }),
+        outfit(base, { hat: "none", hair: "spiky-blue", faceFeature: "goggles", torsoStyle: "lab-coat", heldItem: "flask", pattern: "circuit-lines", robeColor: "#7fd8dc", accent: "#a2ff5f" }),
+        outfit(base, { hat: "wizard", hair: "spiky-blue", faceFeature: "round-glasses", torsoStyle: "space-robe", backItem: "backpack", heldItem: "portal-gun", pattern: "stars", hatColor: "#dfe8ef", robeColor: "#2f7d8a", accent: "#7cff8a" }),
+        outfit(base, { hat: "none", hair: "spiky-blue", faceFeature: "goggles", torsoStyle: "mechanic-coveralls", heldItem: "wrench", pattern: "circuit-lines", robeColor: "#6b6f75", accent: "#6fff9b" }),
+      ];
+    case "Nervous Dimension Kid":
+      return [
+        outfit(base, { hat: "none", hair: "nervous-brown", faceFeature: "none", torsoStyle: "yellow-shirt", backItem: "backpack", heldItem: "none", pattern: "none", robeColor: "#f2d64b", accent: "#69c7ff" }),
+        outfit(base, { hat: "gnome", hair: "nervous-brown", faceFeature: "round-glasses", torsoStyle: "yellow-shirt", backItem: "backpack", heldItem: "portal-gun", robeColor: "#f4d84e", accent: "#8ad8ff" }),
+        outfit(base, { hat: "none", hair: "nervous-brown", faceFeature: "goggles", torsoStyle: "space-robe", heldItem: "flask", pattern: "circuit-lines", robeColor: "#3d78a8", accent: "#ffe45c" }),
+        outfit(base, { hat: "wizard", hair: "nervous-brown", faceFeature: "none", torsoStyle: "yellow-shirt", backItem: "star-cape", heldItem: "book", pattern: "stars", robeColor: "#f7cf4c", accent: "#8ad8ff" }),
+      ];
+    case "Orange Ottsel Loudmouth":
+      return [
+        outfit(base, { hat: "none", hair: "orange-ears", faceFeature: "goggles", torsoStyle: "field-vest", backItem: "dino-tail", heldItem: "wrench", pattern: "scales", robeColor: "#db6b22", accent: "#ffd15c" }),
+        outfit(base, { hat: "none", hair: "orange-ears", faceFeature: "goggles", torsoStyle: "mechanic-coveralls", heldItem: "sword", pattern: "circuit-lines", robeColor: "#b84b21", accent: "#ffc342" }),
+        outfit(base, { hat: "cowboy", hair: "orange-ears", faceFeature: "none", torsoStyle: "field-vest", backItem: "backpack", heldItem: "rock-hammer", robeColor: "#f0832a", accent: "#f8d05d" }),
+        outfit(base, { hat: "wizard", hair: "orange-ears", faceFeature: "round-glasses", torsoStyle: "space-robe", backItem: "star-cape", heldItem: "microphone", pattern: "stars", robeColor: "#c85a24", accent: "#ffd15c" }),
+      ];
+    case "Snack-Fueled Space Fighter":
+      return [
+        outfit(base, { hat: "none", hair: "spiky-blue", faceFeature: "none", torsoStyle: "martial-gi", backItem: "none", heldItem: "none", pattern: "none", robeColor: "#f26b21", accent: "#245de8" }),
+        outfit(base, { hat: "none", hair: "spiky-blue", faceFeature: "none", torsoStyle: "martial-gi", backItem: "star-cape", heldItem: "none", pattern: "stars", robeColor: "#ff7d1f", accent: "#46b6ff" }),
+        outfit(base, { hat: "wizard", hair: "spiky-blue", faceFeature: "goggles", torsoStyle: "space-robe", heldItem: "red-flashlight", pattern: "lightning", robeColor: "#204caa", accent: "#ffde59" }),
+        outfit(base, { hat: "none", hair: "bald", faceFeature: "none", torsoStyle: "martial-gi", backItem: "backpack", heldItem: "book", robeColor: "#f26b21", accent: "#1e60ff" }),
+      ];
+    case "Turtle Dojo Hermit":
+      return [
+        outfit(base, { hat: "none", hair: "bald", faceFeature: "sunglasses", torsoStyle: "beach-shirt", backItem: "turtle-shell", heldItem: "book", pattern: "bubbles", robeColor: "#d08a45", accent: "#ffe071" }),
+        outfit(base, { hat: "fedora", hair: "bald", faceFeature: "sunglasses", torsoStyle: "martial-gi", backItem: "turtle-shell", heldItem: "none", robeColor: "#cc8f42", accent: "#75d36d" }),
+        outfit(base, { hat: "none", hair: "bald", faceFeature: "round-glasses", torsoStyle: "beach-shirt", heldItem: "telescope", pattern: "bubbles", robeColor: "#75a85e", accent: "#ffe071" }),
+        outfit(base, { hat: "wizard", hair: "bald", faceFeature: "sunglasses", torsoStyle: "space-robe", backItem: "turtle-shell", heldItem: "flask", robeColor: "#7a9854", accent: "#ffe071" }),
+      ];
+    case "Cutaway Couch Dad":
+      return [
+        outfit(base, { hat: "none", hair: "none", faceFeature: "round-glasses", torsoStyle: "collared-shirt", heldItem: "none", robeColor: "#f4f4ee", accent: "#7fb05a" }),
+        outfit(base, { hat: "none", faceFeature: "round-glasses", torsoStyle: "collared-shirt", heldItem: "microphone", pattern: "none", robeColor: "#ffffff", accent: "#6ca14e" }),
+        outfit(base, { hat: "cowboy", faceFeature: "round-glasses", torsoStyle: "beach-shirt", heldItem: "spatula", pattern: "bubbles", robeColor: "#7fb05a", accent: "#ff9bbd" }),
+        outfit(base, { hat: "wizard", faceFeature: "round-glasses", torsoStyle: "space-robe", backItem: "star-cape", heldItem: "book", pattern: "stars", robeColor: "#3a4886", accent: "#ff9bbd" }),
+      ];
+    case "Pineapple Fry Cook":
+      return [
+        outfit(base, { hat: "none", hair: "square-porous", faceFeature: "none", torsoStyle: "fry-cook", heldItem: "spatula", pattern: "bubbles", robeColor: "#f5d242", accent: "#6dd6ff" }),
+        outfit(base, { hat: "gnome", hair: "square-porous", faceFeature: "goggles", torsoStyle: "fry-cook", heldItem: "spatula", pattern: "bubbles", robeColor: "#f7dc55", accent: "#8ee6ff" }),
+        outfit(base, { hat: "cowboy", hair: "square-porous", faceFeature: "none", torsoStyle: "field-vest", backItem: "backpack", heldItem: "plant-shears", pattern: "leaf-veins", robeColor: "#d4a348", accent: "#79e66d" }),
+        outfit(base, { hat: "wizard", hair: "square-porous", faceFeature: "round-glasses", torsoStyle: "space-robe", heldItem: "microphone", pattern: "stars", robeColor: "#d9bd35", accent: "#6dd6ff" }),
+      ];
+    case "Wobbly Compass Captain":
+      return [
+        outfit(base, { hat: "cowboy", hair: "pirate-dreads", faceFeature: "eye-patch", torsoStyle: "pirate-coat", backItem: "none", heldItem: "compass", pattern: "none", robeColor: "#7b2535", accent: "#ffd36b" }),
+        outfit(base, { hat: "cowboy", hair: "pirate-dreads", faceFeature: "none", torsoStyle: "pirate-coat", backItem: "twin-swords", heldItem: "sword", robeColor: "#5a1d2b", accent: "#ffd36b" }),
+        outfit(base, { hat: "none", hair: "pirate-dreads", faceFeature: "eye-patch", torsoStyle: "field-vest", heldItem: "telescope", pattern: "stars", robeColor: "#3e5a70", accent: "#ffd36b" }),
+        outfit(base, { hat: "wizard", hair: "pirate-dreads", faceFeature: "none", torsoStyle: "pirate-coat", backItem: "star-cape", heldItem: "compass", pattern: "stars", robeColor: "#493068", accent: "#ffd36b" }),
+      ];
+    case "Captain Barnacle Hex":
+      return [
+        outfit(base, { hat: "cowboy", hair: "pirate-dreads", faceFeature: "eye-patch", torsoStyle: "pirate-coat", backItem: "star-cape", heldItem: "sword", pattern: "scales", robeColor: "#15525c", accent: "#7fffd4" }),
+        outfit(base, { hat: "wizard", hair: "pirate-dreads", faceFeature: "none", torsoStyle: "space-robe", heldItem: "book", pattern: "stars", robeColor: "#173e55", accent: "#7fffd4" }),
+        outfit(base, { hat: "cowboy", hair: "pirate-dreads", faceFeature: "eye-patch", torsoStyle: "pirate-coat", backItem: "twin-swords", heldItem: "compass", pattern: "scales", robeColor: "#20394a", accent: "#7fffd4" }),
+        outfit(base, { hat: "none", hair: "pirate-dreads", faceFeature: "goggles", torsoStyle: "field-vest", heldItem: "telescope", pattern: "bubbles", robeColor: "#2a7570", accent: "#7fffd4" }),
+      ];
+    case "Fourth-Wall Masked Merc":
+      return [
+        outfit(base, { hat: "none", hair: "none", faceFeature: "mask", torsoStyle: "tactical-suit", backItem: "twin-swords", heldItem: "sword", pattern: "none", robeColor: "#b82236", accent: "#111111" }),
+        outfit(base, { hat: "none", faceFeature: "mask", torsoStyle: "tactical-suit", backItem: "twin-swords", heldItem: "microphone", pattern: "circuit-lines", robeColor: "#8c1d2d", accent: "#ffffff" }),
+        outfit(base, { hat: "wizard", faceFeature: "mask", torsoStyle: "space-robe", backItem: "star-cape", heldItem: "book", pattern: "stars", robeColor: "#4b1d61", accent: "#ff3f5f" }),
+        outfit(base, { hat: "cowboy", faceFeature: "mask", torsoStyle: "pirate-coat", backItem: "twin-swords", heldItem: "compass", robeColor: "#b82236", accent: "#1b1b1b" }),
+      ];
+    case "Dinosaur Expert":
+      return [
+        outfit(base, { hat: "cork", hair: "none", faceFeature: "goggles", torsoStyle: "field-vest", backItem: "dino-tail", heldItem: "fossil-brush", pattern: "fossil-bones", robeColor: "#5c7f45", accent: "#f0d07a" }),
+        outfit(base, { hat: "none", hair: "orange-ears", faceFeature: "none", torsoStyle: "field-vest", backItem: "dino-tail", heldItem: "rock-hammer", pattern: "scales", robeColor: "#59733e", accent: "#f0d07a" }),
+        outfit(base, { hat: "fedora", faceFeature: "round-glasses", torsoStyle: "detective-coat", heldItem: "book", pattern: "fossil-bones", robeColor: "#7b6142", accent: "#d9b56d" }),
+        outfit(base, { hat: "wizard", faceFeature: "goggles", torsoStyle: "space-robe", backItem: "star-cape", heldItem: "telescope", pattern: "stars", robeColor: "#345c4f", accent: "#f0d07a" }),
+      ];
+    case "Astronomer":
+      return [
+        outfit(base, { hat: "wizard", hair: "none", faceFeature: "round-glasses", torsoStyle: "space-robe", backItem: "star-cape", heldItem: "telescope", pattern: "stars", robeColor: "#1c2d68", accent: "#b7d7ff" }),
+        outfit(base, { hat: "none", faceFeature: "goggles", torsoStyle: "field-vest", heldItem: "red-flashlight", pattern: "stars", robeColor: "#24345d", accent: "#ff4f5e" }),
+        outfit(base, { hat: "wizard", faceFeature: "none", torsoStyle: "space-robe", backItem: "weather-vane", heldItem: "book", pattern: "stars", robeColor: "#111a3a", accent: "#b7d7ff" }),
+        outfit(base, { hat: "fedora", faceFeature: "round-glasses", torsoStyle: "detective-coat", heldItem: "telescope", pattern: "circuit-lines", robeColor: "#2d3e66", accent: "#b7d7ff" }),
+      ];
+    case "Kitchen Scientist":
+      return [
+        outfit(base, { hat: "none", faceFeature: "goggles", torsoStyle: "chef-coat", heldItem: "spatula", pattern: "none", robeColor: "#f0f2ed", accent: "#ffd26a" }),
+        outfit(base, { hat: "none", faceFeature: "goggles", torsoStyle: "lab-coat", heldItem: "flask", pattern: "circuit-lines", robeColor: "#e8eef2", accent: "#7fff7f" }),
+        outfit(base, { hat: "gnome", faceFeature: "none", torsoStyle: "fry-cook", heldItem: "spatula", pattern: "bubbles", robeColor: "#c84a3a", accent: "#ffd26a" }),
+        outfit(base, { hat: "wizard", faceFeature: "round-glasses", torsoStyle: "space-robe", heldItem: "book", pattern: "stars", robeColor: "#714a35", accent: "#ffd26a" }),
+      ];
+    case "Weather Oracle":
+      return [
+        outfit(base, { hat: "wizard", faceFeature: "none", torsoStyle: "space-robe", backItem: "weather-vane", heldItem: "red-flashlight", pattern: "lightning", robeColor: "#2f5f7a", accent: "#9bd7ff" }),
+        outfit(base, { hat: "none", faceFeature: "goggles", torsoStyle: "field-vest", backItem: "backpack", heldItem: "telescope", pattern: "lightning", robeColor: "#4b6275", accent: "#9bd7ff" }),
+        outfit(base, { hat: "cowboy", faceFeature: "none", torsoStyle: "mechanic-coveralls", heldItem: "wrench", pattern: "lightning", robeColor: "#5d6e7b", accent: "#ffd35c" }),
+        outfit(base, { hat: "wizard", faceFeature: "round-glasses", torsoStyle: "space-robe", backItem: "star-cape", heldItem: "book", pattern: "stars", robeColor: "#202d52", accent: "#9bd7ff" }),
+      ];
+    case "History Buff":
+      return [
+        outfit(base, { hat: "fedora", faceFeature: "round-glasses", torsoStyle: "detective-coat", heldItem: "book", pattern: "none", robeColor: "#7b6142", accent: "#e6c27a" }),
+        outfit(base, { hat: "fedora", faceFeature: "round-glasses", torsoStyle: "field-vest", heldItem: "fossil-brush", pattern: "fossil-bones", robeColor: "#6d573c", accent: "#e6c27a" }),
+        outfit(base, { hat: "wizard", faceFeature: "none", torsoStyle: "space-robe", heldItem: "book", pattern: "stars", robeColor: "#4b3d72", accent: "#e6c27a" }),
+        outfit(base, { hat: "cowboy", faceFeature: "round-glasses", torsoStyle: "pirate-coat", heldItem: "compass", pattern: "none", robeColor: "#6a422e", accent: "#e6c27a" }),
+      ];
+    case "Plant Doctor":
+      return [
+        outfit(base, { hat: "gnome", faceFeature: "none", torsoStyle: "field-vest", backItem: "backpack", heldItem: "plant-shears", pattern: "leaf-veins", robeColor: "#4f9b55", accent: "#b4ff7a" }),
+        outfit(base, { hat: "none", faceFeature: "goggles", torsoStyle: "lab-coat", heldItem: "flask", pattern: "leaf-veins", robeColor: "#e6f3df", accent: "#69d96b" }),
+        outfit(base, { hat: "cork", faceFeature: "round-glasses", torsoStyle: "field-vest", heldItem: "book", pattern: "leaf-veins", robeColor: "#2e7d42", accent: "#b4ff7a" }),
+        outfit(base, { hat: "wizard", faceFeature: "none", torsoStyle: "space-robe", backItem: "star-cape", heldItem: "plant-shears", pattern: "stars", robeColor: "#295d3a", accent: "#b4ff7a" }),
+      ];
+    case "Mechanic Mage":
+      return [
+        outfit(base, { hat: "cowboy", faceFeature: "goggles", torsoStyle: "mechanic-coveralls", heldItem: "wrench", pattern: "circuit-lines", robeColor: "#3b4654", accent: "#ffcf5a" }),
+        outfit(base, { hat: "none", faceFeature: "goggles", torsoStyle: "mechanic-coveralls", backItem: "backpack", heldItem: "rock-hammer", pattern: "circuit-lines", robeColor: "#4a4f56", accent: "#ffcf5a" }),
+        outfit(base, { hat: "wizard", faceFeature: "round-glasses", torsoStyle: "space-robe", heldItem: "flask", pattern: "lightning", robeColor: "#263858", accent: "#ffcf5a" }),
+        outfit(base, { hat: "fedora", faceFeature: "round-glasses", torsoStyle: "detective-coat", heldItem: "wrench", robeColor: "#50565f", accent: "#ffcf5a" }),
+      ];
+    case "Language Nerd":
+      return [
+        outfit(base, { hat: "fedora", faceFeature: "round-glasses", torsoStyle: "detective-coat", heldItem: "book", pattern: "none", robeColor: "#634f8f", accent: "#ffd1f0" }),
+        outfit(base, { hat: "wizard", faceFeature: "round-glasses", torsoStyle: "space-robe", heldItem: "book", pattern: "stars", robeColor: "#4b3d72", accent: "#ffd1f0" }),
+        outfit(base, { hat: "none", faceFeature: "goggles", torsoStyle: "lab-coat", heldItem: "microphone", pattern: "circuit-lines", robeColor: "#e8e2f3", accent: "#634f8f" }),
+        outfit(base, { hat: "gnome", faceFeature: "round-glasses", torsoStyle: "field-vest", heldItem: "red-flashlight", pattern: "leaf-veins", robeColor: "#5c7c61", accent: "#ffd1f0" }),
+      ];
+    default:
+      return undefined;
+  }
 }
 
 function shift(hex: string, frac: number): string {
@@ -221,6 +364,7 @@ function persona(
   sfx: PersonaMeta["sfx"],
   moods: string[]
 ): NewCharacter {
+  const appearanceVariants = uniqueWardrobe(name, appearance);
   return {
     name,
     emoji,
@@ -228,7 +372,7 @@ function persona(
     system_prompt,
     temperature,
     is_seed: true,
-    meta: seedMeta(appearance, { accessories, voice, sfx, moods }),
+    meta: seedMeta(appearance, { accessories, voice, sfx, moods, appearanceVariants }),
   };
 }
 
