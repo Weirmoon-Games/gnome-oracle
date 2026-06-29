@@ -14,8 +14,10 @@ interface HistoryRow {
 }
 
 function timeAgo(iso: string): string {
-  // sqlite stores UTC "YYYY-MM-DD HH:MM:SS"
-  const then = new Date(iso.replace(" ", "T") + "Z").getTime();
+  // New rows are ISO-8601 (e.g. 2026-06-29T12:00:00.000Z). Legacy SQLite rows
+  // may be "YYYY-MM-DD HH:MM:SS" (UTC) — handle both.
+  const parsed = iso.includes("T") ? new Date(iso) : new Date(iso.replace(" ", "T") + "Z");
+  const then = parsed.getTime();
   const secs = Math.max(0, Math.floor((Date.now() - then) / 1000));
   if (secs < 60) return "just now";
   const mins = Math.floor(secs / 60);
@@ -31,7 +33,14 @@ export default function History() {
 
   const load = useCallback(() => {
     fetch(`/api/history${favoritesOnly ? "?favorites=1" : ""}`)
-      .then((r) => r.json())
+      .then((r) => {
+        // Stale/expired session that slipped past middleware → back to login.
+        if (r.status === 401) {
+          window.location.href = "/login?next=/history";
+          return [];
+        }
+        return r.json();
+      })
       .then(setRows)
       .catch(() => {});
   }, [favoritesOnly]);

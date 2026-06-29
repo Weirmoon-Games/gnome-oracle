@@ -1,8 +1,27 @@
 // Shared persona "meta" types + deterministic fallbacks. NO node-only imports
 // here so this module is safe to import from client components too.
 
-export type HatStyle = "wizard" | "gnome" | "fedora" | "cork" | "cowboy" | "none";
-export const HAT_STYLES: HatStyle[] = ["wizard", "gnome", "fedora", "cork", "cowboy", "none"];
+export type HatStyle =
+  | "wizard"
+  | "gnome"
+  | "fedora"
+  | "cork"
+  | "cowboy"
+  | "crown" // NEW (Phase 8)
+  | "viking-helm" // NEW (Phase 8)
+  | "top-hat" // NEW (Phase 8)
+  | "none";
+export const HAT_STYLES: HatStyle[] = [
+  "wizard",
+  "gnome",
+  "fedora",
+  "cork",
+  "cowboy",
+  "crown",
+  "viking-helm",
+  "top-hat",
+  "none",
+];
 
 export type CostumeAccessory =
   | "none"
@@ -68,7 +87,9 @@ export type FaceFeature =
   | "round-glasses"
   | "mask"
   | "beard-stache"
-  | "eye-patch";
+  | "eye-patch"
+  | "monocle" // NEW (Phase 8)
+  | "vampire-fangs"; // NEW (Phase 8)
 export const FACE_FEATURES: FaceFeature[] = [
   "none",
   "goggles",
@@ -77,6 +98,8 @@ export const FACE_FEATURES: FaceFeature[] = [
   "mask",
   "beard-stache",
   "eye-patch",
+  "monocle",
+  "vampire-fangs",
 ];
 
 export type TorsoStyle =
@@ -143,7 +166,10 @@ export type HeldItem =
   | "wrench"
   | "book"
   | "microphone"
-  | "plant-shears";
+  | "plant-shears"
+  | "crystal-ball" // NEW (Phase 8)
+  | "lute" // NEW (Phase 8)
+  | "tea-cup"; // NEW (Phase 8)
 export const HELD_ITEMS: HeldItem[] = [
   "none",
   "portal-gun",
@@ -159,6 +185,9 @@ export const HELD_ITEMS: HeldItem[] = [
   "book",
   "microphone",
   "plant-shears",
+  "crystal-ball",
+  "lute",
+  "tea-cup",
 ];
 
 export type CostumePattern =
@@ -169,7 +198,8 @@ export type CostumePattern =
   | "bubbles"
   | "lightning"
   | "circuit-lines"
-  | "leaf-veins";
+  | "leaf-veins"
+  | "flames"; // NEW (Phase 8)
 export const COSTUME_PATTERNS: CostumePattern[] = [
   "none",
   "stars",
@@ -179,12 +209,32 @@ export const COSTUME_PATTERNS: CostumePattern[] = [
   "lightning",
   "circuit-lines",
   "leaf-veins",
+  "flames",
 ];
 
 // Sound-effect "flavor" per persona — drives the waveform/notes of the chime,
 // typing blip, etc. (mapped to actual synth params in lib/sound.ts).
-export type SfxTheme = "magic" | "corporate" | "nature" | "robot" | "whimsy";
-export const SFX_THEMES: SfxTheme[] = ["magic", "corporate", "nature", "robot", "whimsy"];
+export type SfxTheme =
+  | "magic"
+  | "corporate"
+  | "nature"
+  | "robot"
+  | "whimsy"
+  | "chiptune" // NEW (Phase 8) — square 8-bit arpeggio
+  | "spooky" // NEW (Phase 8) — low minor sine/triangle
+  | "jazzy" // NEW (Phase 8) — warm swung triangle
+  | "oceanic"; // NEW (Phase 8) — soft watery sine
+export const SFX_THEMES: SfxTheme[] = [
+  "magic",
+  "corporate",
+  "nature",
+  "robot",
+  "whimsy",
+  "chiptune",
+  "spooky",
+  "jazzy",
+  "oceanic",
+];
 
 export interface Appearance {
   hat: HatStyle;
@@ -202,9 +252,29 @@ export interface Appearance {
   pattern?: CostumePattern;
 }
 
+// Known Kokoro-82M voice ids (plan §4). These drive the in-browser neural TTS
+// engine (lib/kokoroTts.ts). The browser-speech fallback ignores `voiceId` and
+// uses `rate`/`pitch` instead, so every persona keeps a working voice even when
+// Kokoro is unavailable.
+export const KOKORO_VOICES = [
+  "af_heart",
+  "af_bella",
+  "af_nicole",
+  "af_sarah",
+  "am_michael",
+  "am_adam",
+  "bf_emma",
+  "bf_isabella",
+  "bm_george",
+  "bm_lewis",
+] as const;
+export type KokoroVoiceId = (typeof KOKORO_VOICES)[number];
+
 export interface Voice {
-  rate: number; // 0.5 - 1.6
-  pitch: number; // 0 - 2
+  rate: number; // 0.5 - 1.6 (browser-speech fallback)
+  pitch: number; // 0 - 2 (browser-speech fallback)
+  voiceId?: KokoroVoiceId; // Kokoro neural voice (primary engine)
+  speed?: number; // 0.5 - 1.6 Kokoro playback speed
 }
 
 export interface PersonaMeta {
@@ -255,10 +325,13 @@ export function deriveMeta(slug: string, temperature = 0.9): PersonaMeta {
   const rate = clamp(0.85 + (t - 0.5) * 0.45, 0.7, 1.4);
   const pitch = clamp(0.85 + (t - 0.5) * 0.7, 0.6, 1.6);
   const sfx = SFX_THEMES[(h >> 6) % SFX_THEMES.length];
+  // Deterministically pick a Kokoro voice from the slug hash so even personas
+  // without explicit voice metadata get a stable, characterful neural voice.
+  const voiceId = KOKORO_VOICES[(h >> 9) % KOKORO_VOICES.length];
   return {
     appearance: { hat, ...palette },
     appearanceVariants: makeDefaultVariants({ hat, ...palette }),
-    voice: { rate: round2(rate), pitch: round2(pitch) },
+    voice: { rate: round2(rate), pitch: round2(pitch), voiceId, speed: round2(rate) },
     sfx,
     moods: ["default", "excited", "grumpy", "wise"],
   };
@@ -331,12 +404,19 @@ export function normalizeMeta(
         .slice(0, 8)
     : fallback.moods;
 
+  // Validate the Kokoro voice id against the known list; fall back otherwise.
+  const voiceId = KOKORO_VOICES.includes(v.voiceId as KokoroVoiceId)
+    ? (v.voiceId as KokoroVoiceId)
+    : fallback.voice.voiceId;
+
   return {
     appearance,
     appearanceVariants,
     voice: {
       rate: num(v.rate, fallback.voice.rate, 0.5, 1.6),
       pitch: num(v.pitch, fallback.voice.pitch, 0, 2),
+      voiceId,
+      speed: num(v.speed, fallback.voice.speed ?? 1, 0.5, 1.6),
     },
     sfx,
     moods: moods.length ? Array.from(new Set(["default", ...moods])) : fallback.moods,

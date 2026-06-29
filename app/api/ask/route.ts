@@ -1,4 +1,20 @@
+// =============================================================================
+// app/api/ask/route.ts — stream a persona's answer (open to everyone)
+// =============================================================================
+// Asking the Oracle stays anonymous-friendly. Behavior:
+//   • Resolve the current user (may be null). The persona is fetched scoped to
+//     that user (seeds for everyone; private personas only for their owner).
+//   • Logged in  → record a history row and return its id via `X-History-Id`,
+//                  filling the answer in once the stream completes.
+//   • Anonymous  → DON'T persist (no row, no header); streaming is identical.
+//   • Optional `model` / `responseLength` (from Settings) are threaded into the
+//     Ollama call (plan §5).
+// All DB calls are now async (Kysely), so the persisting transform's `flush()`
+// is async too.
+// =============================================================================
+
 import { NextRequest } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
 import { getCharacter, addHistory, setHistoryAnswer } from "@/lib/db";
 import { streamChat, ndjsonToTextStream, type ChatMessage } from "@/lib/ollama";
 
@@ -48,7 +64,14 @@ function textResponse(text: string): Response {
 }
 
 export async function POST(req: NextRequest) {
-  let body: { question?: string; characterId?: number; responseStyle?: string; mood?: string };
+  let body: {
+    question?: string;
+    characterId?: number;
+    responseStyle?: string;
+    mood?: string;
+    model?: string;
+    responseLength?: number;
+  };
   try {
     body = await req.json();
   } catch {
@@ -59,45 +82,59 @@ export async function POST(req: NextRequest) {
   const characterId = Number(body.characterId);
   if (!question) return textResponse("Ask me something, won't you?");
 
-  const persona = Number.isFinite(characterId) ? getCharacter(characterId) : undefined;
+  // Anonymous visitors are allowed; they just can't see private personas and
+  // their exchanges aren't saved.
+  const user = await getCurrentUser();
+  const persona = Number.isFinite(characterId)
+    ? await getCharacter(characterId, user?.id ?? null)
+    : undefined;
   if (!persona) return textResponse("That persona has wandered off. Pick another from the list!");
+
   const responseStyle = normalizeResponseStyle(body.responseStyle);
   const mood = normalizeMood(body.mood, persona.meta.moods);
   const moodPrompt = MOOD_PROMPTS[mood] ?? ` Mood: ${mood.replace(/-/g, " ")}.`;
+  const model = typeof body.model === "string" && body.model ? body.model : undefined;
+  const numPredict =
+    Number.isFinite(body.responseLength) && (body.responseLength as number) > 0
+      ? Math.min(1024, Math.max(32, Math.round(body.responseLength as number)))
+      : undefined;
 
   const messages: ChatMessage[] = [
     {
       role: "system",
       content:
-        persona.system_prompt +
-        RESPONSE_STYLE_PROMPTS[responseStyle] +
-        moodPrompt +
-        GLOBAL_GUARD,
+        persona.system_prompt + RESPONSE_STYLE_PROMPTS[responseStyle] + moodPrompt + GLOBAL_GUARD,
     },
     { role: "user", content: question },
   ];
 
   let ollama: Response;
   try {
-    ollama = await streamChat({ messages, temperature: persona.temperature });
+    ollama = await streamChat({ messages, temperature: persona.temperature, model, numPredict });
   } catch {
     return textResponse(
       "*The oracle's crystal ball has gone dark.* (Could not reach Ollama — is it running?)"
     );
   }
 
-  // Record the exchange now; fill the answer in once the stream completes.
-  const historyId = addHistory({
-    characterId: persona.id,
-    personaName: persona.name,
-    personaEmoji: persona.emoji,
-    question,
-  });
+  // Only logged-in users get a persisted history row.
+  let historyId: number | null = null;
+  if (user) {
+    historyId = await addHistory(
+      {
+        characterId: persona.id,
+        personaName: persona.name,
+        personaEmoji: persona.emoji,
+        question,
+      },
+      user.id
+    );
+  }
 
   const textStream = ndjsonToTextStream(ollama.body!);
 
-  // Tee the text through a transform that accumulates the full answer and
-  // persists it on flush — no extra client round-trip, no trusting the client.
+  // Accumulate the full answer and persist it on flush (no extra client
+  // round-trip, no trusting the client). flush() is async now that the DB is.
   const decoder = new TextDecoder();
   let full = "";
   const persisting = textStream.pipeThrough(
@@ -106,20 +143,20 @@ export async function POST(req: NextRequest) {
         full += decoder.decode(chunk, { stream: true });
         controller.enqueue(chunk);
       },
-      flush() {
-        setHistoryAnswer(historyId, full.trim());
+      async flush() {
+        if (historyId != null) await setHistoryAnswer(historyId, full.trim());
       },
     })
   );
 
-  return new Response(persisting, {
-    headers: {
-      "Content-Type": "text/plain; charset=utf-8",
-      "Cache-Control": "no-store",
-      "X-Accel-Buffering": "no",
-      "X-History-Id": String(historyId),
-    },
-  });
+  const headers: Record<string, string> = {
+    "Content-Type": "text/plain; charset=utf-8",
+    "Cache-Control": "no-store",
+    "X-Accel-Buffering": "no",
+  };
+  if (historyId != null) headers["X-History-Id"] = String(historyId);
+
+  return new Response(persisting, { headers });
 }
 
 function normalizeResponseStyle(raw: unknown): ResponseStyle {

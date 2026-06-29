@@ -134,3 +134,8 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Gnome Oracle runtime data (upgrade)
+data/db-config.json
+data/music/
+public/models/

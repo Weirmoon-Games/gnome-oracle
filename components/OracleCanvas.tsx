@@ -32,10 +32,13 @@ export default function OracleCanvas({
   speaking,
   appearance,
   burst = 0,
+  reduceMotion = false,
 }: {
   speaking: boolean;
   appearance?: Appearance;
   burst?: number;
+  /** Accessibility: calm the canvas (no bob, no sparkle bursts, steady mouth). */
+  reduceMotion?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const speakingRef = useRef(speaking);
@@ -43,12 +46,15 @@ export default function OracleCanvas({
   const apRef = useRef<Appearance>(appearance ?? DEFAULT_APPEARANCE);
   apRef.current = appearance ?? DEFAULT_APPEARANCE;
   const burstRef = useRef(burst);
+  const reduceMotionRef = useRef(reduceMotion);
+  reduceMotionRef.current = reduceMotion;
   const particlesRef = useRef<Particle[]>([]);
 
-  // When `burst` changes, spawn a pop of sparkles.
+  // When `burst` changes, spawn a pop of sparkles (skipped when reduced motion).
   useEffect(() => {
     if (burst === burstRef.current) return;
     burstRef.current = burst;
+    if (reduceMotionRef.current) return;
     const p = particlesRef.current;
     for (let i = 0; i < 22; i++) {
       const a = Math.random() * Math.PI * 2;
@@ -84,10 +90,11 @@ export default function OracleCanvas({
       const t = (now - start) / 1000;
       const isSpeaking = speakingRef.current;
       const ap = apRef.current;
+      const calm = reduceMotionRef.current;
       const hasStaff = ap.hat === "wizard" || ap.hat === "gnome";
       ctx!.clearRect(0, 0, SIZE, SIZE);
 
-      const bob = Math.sin(t * 2) * 4;
+      const bob = calm ? 0 : Math.sin(t * 2) * 4;
       const cx = SIZE / 2;
       ctx!.save();
       ctx!.translate(cx, 150 + bob);
@@ -626,6 +633,26 @@ function drawPattern(ctx: CanvasRenderingContext2D, ap: Appearance) {
       }
       ctx.stroke();
       break;
+    case "flames":
+      // Stylized flame tongues rising up the robe (Phase 8).
+      for (const f of [
+        { x: -18, h: 26, w: 9 },
+        { x: 0, h: 34, w: 11 },
+        { x: 18, h: 24, w: 9 },
+      ]) {
+        const baseY = 86;
+        const grad = ctx.createLinearGradient(0, baseY, 0, baseY - f.h);
+        grad.addColorStop(0, "#ff8a2b");
+        grad.addColorStop(1, ap.accent);
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(f.x - f.w, baseY);
+        ctx.quadraticCurveTo(f.x - f.w * 0.4, baseY - f.h * 0.6, f.x, baseY - f.h);
+        ctx.quadraticCurveTo(f.x + f.w * 0.4, baseY - f.h * 0.6, f.x + f.w, baseY);
+        ctx.closePath();
+        ctx.fill();
+      }
+      break;
     case "none":
     default:
       break;
@@ -751,6 +778,37 @@ function drawFaceFeature(ctx: CanvasRenderingContext2D, ap: Appearance) {
       ctx.lineTo(22, -23);
       ctx.stroke();
       break;
+    case "monocle":
+      // Single gold-rimmed lens over the right eye + a little chain (Phase 8).
+      ctx.strokeStyle = "#f5c542";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(9, -32, 8, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = "rgba(245,197,66,0.7)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(9, -24);
+      ctx.quadraticCurveTo(16, -12, 14, -2);
+      ctx.stroke();
+      // glint
+      ctx.fillStyle = "rgba(255,255,255,0.5)";
+      ctx.beginPath();
+      ctx.arc(7, -34, 2, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case "vampire-fangs":
+      // Two small white fangs below the mouth area (Phase 8).
+      ctx.fillStyle = "#fffdf7";
+      for (const dx of [-5, 5]) {
+        ctx.beginPath();
+        ctx.moveTo(dx - 2.5, -13);
+        ctx.lineTo(dx + 2.5, -13);
+        ctx.lineTo(dx, -6);
+        ctx.closePath();
+        ctx.fill();
+      }
+      break;
     case "none":
     default:
       break;
@@ -867,10 +925,117 @@ function drawHeldItem(ctx: CanvasRenderingContext2D, ap: Appearance, t: number) 
     case "plant-shears":
       drawShears(ctx, ap.accent);
       break;
+    case "crystal-ball":
+      drawCrystalBall(ctx, ap.accent, t);
+      break;
+    case "lute":
+      drawLute(ctx, ap.accent);
+      break;
+    case "tea-cup":
+      drawTeaCup(ctx, ap.accent, t);
+      break;
     case "none":
     default:
       break;
   }
+}
+
+// --- New held-item renderers (Phase 8) ---
+
+/** A glowing crystal ball resting on a little stand in the right hand. */
+function drawCrystalBall(ctx: CanvasRenderingContext2D, accent: string, t: number) {
+  ctx.save();
+  ctx.translate(44, 34);
+  // stand
+  ctx.fillStyle = "#3a2f50";
+  ctx.beginPath();
+  ctx.moveTo(-12, 20);
+  ctx.lineTo(12, 20);
+  ctx.lineTo(7, 10);
+  ctx.lineTo(-7, 10);
+  ctx.closePath();
+  ctx.fill();
+  // orb
+  const pulse = 0.5 + Math.sin(t * 3) * 0.5;
+  const grad = ctx.createRadialGradient(-4, -2, 2, 0, 0, 16);
+  grad.addColorStop(0, "#ffffff");
+  grad.addColorStop(0.5, accent);
+  grad.addColorStop(1, "rgba(60,30,90,0.85)");
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(0, 0, 14, 0, Math.PI * 2);
+  ctx.fill();
+  // inner sparkle
+  ctx.globalAlpha = 0.4 + pulse * 0.5;
+  ctx.fillStyle = "#fff";
+  ctx.beginPath();
+  ctx.arc(-4, -4, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+/** A small lute / mandolin held across the body. */
+function drawLute(ctx: CanvasRenderingContext2D, accent: string) {
+  ctx.save();
+  ctx.translate(40, 30);
+  ctx.rotate(0.3);
+  // body
+  ctx.fillStyle = "#9a5a2b";
+  ctx.beginPath();
+  ctx.ellipse(0, 8, 14, 18, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#2a1a10";
+  ctx.beginPath();
+  ctx.arc(0, 6, 4, 0, Math.PI * 2);
+  ctx.fill();
+  // neck
+  ctx.fillStyle = "#6b3e1d";
+  ctx.fillRect(-3, -34, 6, 30);
+  // strings
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 1;
+  for (const dx of [-1.5, 1.5]) {
+    ctx.beginPath();
+    ctx.moveTo(dx, -32);
+    ctx.lineTo(dx, 18);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** A steaming tea cup on a saucer. */
+function drawTeaCup(ctx: CanvasRenderingContext2D, accent: string, t: number) {
+  ctx.save();
+  ctx.translate(44, 34);
+  // saucer
+  ctx.fillStyle = "#f3efe6";
+  ctx.beginPath();
+  ctx.ellipse(0, 16, 16, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // cup
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.moveTo(-11, 2);
+  ctx.lineTo(11, 2);
+  ctx.lineTo(7, 14);
+  ctx.lineTo(-7, 14);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(12, 7, 5, -Math.PI / 2, Math.PI / 2);
+  ctx.stroke();
+  // steam
+  ctx.strokeStyle = "rgba(255,255,255,0.6)";
+  ctx.lineWidth = 1.5;
+  for (const dx of [-4, 4]) {
+    ctx.beginPath();
+    ctx.moveTo(dx, -2);
+    ctx.quadraticCurveTo(dx + Math.sin(t * 4) * 3, -10, dx, -18);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 function drawFlask(ctx: CanvasRenderingContext2D, accent: string, t: number) {
@@ -1316,6 +1481,69 @@ function drawHat(ctx: CanvasRenderingContext2D, ap: Appearance, t: number) {
       ctx.stroke();
       ctx.fillStyle = ap.accent;
       ctx.fillRect(-20, -54, 40, 4);
+      break;
+    }
+    case "crown": {
+      // Gold crown with three points + jewel dots (Phase 8).
+      ctx.fillStyle = "#f5c542";
+      ctx.beginPath();
+      ctx.moveTo(-26, -46);
+      ctx.lineTo(-26, -64);
+      ctx.lineTo(-13, -54);
+      ctx.lineTo(0, -72);
+      ctx.lineTo(13, -54);
+      ctx.lineTo(26, -64);
+      ctx.lineTo(26, -46);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = shade("#f5c542", -0.25);
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      // jewels
+      const jewels = [-26, 0, 26];
+      jewels.forEach((x, i) => {
+        ctx.fillStyle = i === 1 ? "#ff5a7a" : ap.accent;
+        ctx.beginPath();
+        ctx.arc(x, -62 + (i === 1 ? -2 : 0), 3, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      break;
+    }
+    case "viking-helm": {
+      // Rounded iron helm with two curved horns (Phase 8).
+      ctx.fillStyle = shade(ap.hatColor, -0.05) || "#9aa3ad";
+      ctx.fillStyle = "#9aa3ad";
+      ctx.beginPath();
+      ctx.arc(0, -48, 26, Math.PI, 0, false);
+      ctx.fill();
+      ctx.fillRect(-26, -50, 52, 6);
+      // nose guard
+      ctx.fillRect(-3, -50, 6, 16);
+      // horns
+      ctx.fillStyle = "#efe7d2";
+      for (const dir of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(dir * 22, -54);
+        ctx.quadraticCurveTo(dir * 46, -64, dir * 40, -88);
+        ctx.quadraticCurveTo(dir * 34, -70, dir * 16, -60);
+        ctx.closePath();
+        ctx.fill();
+      }
+      break;
+    }
+    case "top-hat": {
+      // Tall stovepipe hat with a band (Phase 8).
+      ctx.fillStyle = shade(ap.hatColor, -0.15);
+      ctx.beginPath();
+      ctx.ellipse(0, -46, 38, 9, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = ap.hatColor;
+      ctx.fillRect(-22, -96, 44, 50);
+      ctx.beginPath();
+      ctx.ellipse(0, -96, 22, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = ap.accent;
+      ctx.fillRect(-22, -56, 44, 7);
       break;
     }
     case "none":

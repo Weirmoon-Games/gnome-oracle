@@ -24,12 +24,14 @@ export async function streamChat(opts: {
   messages: ChatMessage[];
   temperature?: number;
   numPredict?: number;
+  /** Optional model override (from Settings); defaults to OLLAMA_MODEL. */
+  model?: string;
 }): Promise<Response> {
   const res = await fetch(`${OLLAMA_URL}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: OLLAMA_MODEL,
+      model: opts.model || OLLAMA_MODEL,
       messages: opts.messages,
       stream: true,
       keep_alive: KEEP_ALIVE,
@@ -45,6 +47,23 @@ export async function streamChat(opts: {
     throw new Error(`Ollama responded ${res.status}`);
   }
   return res;
+}
+
+/**
+ * List locally-installed Ollama models via `GET /api/tags`. Used by the model
+ * picker in Settings. Returns model names (e.g. "gemma2:2b"); throws if Ollama
+ * is unreachable so the caller can surface a friendly message.
+ */
+export async function listModels(): Promise<string[]> {
+  const res = await fetch(`${OLLAMA_URL}/api/tags`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Ollama responded ${res.status}`);
+  const data = (await res.json()) as { models?: { name?: string }[] };
+  const names = (data.models ?? [])
+    .map((m) => m.name)
+    .filter((n): n is string => typeof n === "string" && n.length > 0);
+  // Ensure the configured default is always offered, even if tags is empty.
+  if (!names.includes(OLLAMA_MODEL)) names.unshift(OLLAMA_MODEL);
+  return names;
 }
 
 /**

@@ -23,7 +23,13 @@ export default function Lab() {
 
   function load() {
     fetch("/api/characters")
-      .then((r) => r.json())
+      .then((r) => {
+        if (r.status === 401) {
+          window.location.href = "/login?next=/lab";
+          return [];
+        }
+        return r.json();
+      })
       .then(setCharacters)
       .catch(() => {});
   }

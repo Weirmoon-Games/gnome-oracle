@@ -21,6 +21,15 @@ const THEMES: Record<SfxTheme, ThemeParams> = {
   nature: { wave: "triangle", chime: [392, 494, 587, 659], blip: 880, blipWave: "triangle" },
   robot: { wave: "square", chime: [330, 440, 330, 550], blip: 240, blipWave: "square" },
   whimsy: { wave: "triangle", chime: [587, 698, 880, 1175], blip: 1500, blipWave: "triangle" },
+  // --- New themes (Phase 8) ---
+  // chiptune: bright square-wave 8-bit major arpeggio.
+  chiptune: { wave: "square", chime: [523.25, 659.25, 880, 1046.5], blip: 1760, blipWave: "square" },
+  // spooky: low, minor, sine/triangle — eerie and slow.
+  spooky: { wave: "sine", chime: [311.13, 369.99, 415.3, 466.16], blip: 220, blipWave: "triangle" },
+  // jazzy: warm swung triangle on a maj7-ish voicing.
+  jazzy: { wave: "triangle", chime: [392, 493.88, 587.33, 698.46], blip: 740, blipWave: "triangle" },
+  // oceanic: soft, watery sine, gentle rising swell.
+  oceanic: { wave: "sine", chime: [349.23, 440, 523.25, 659.25], blip: 990, blipWave: "sine" },
 };
 
 class SoundEngine {

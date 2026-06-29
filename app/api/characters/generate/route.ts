@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
 import { createCharacter } from "@/lib/db";
 import { generateJSON } from "@/lib/ollama";
 import {
@@ -87,6 +88,9 @@ function validate(obj: unknown): GeneratedPersona | null {
 }
 
 export async function POST(req: NextRequest) {
+  const user = await getCurrentUser();
+  if (!user) return NextResponse.json({ error: "Sign in required" }, { status: 401 });
+
   let body: { vibe?: string };
   try {
     body = await req.json();
@@ -138,6 +142,6 @@ export async function POST(req: NextRequest) {
     persona.temperature
   );
 
-  const created = createCharacter({ ...persona, is_seed: false, meta });
+  const created = await createCharacter({ ...persona, is_seed: false, meta }, user.id);
   return NextResponse.json(created, { status: 201 });
 }
